@@ -851,6 +851,34 @@ describe "Semantic: class" do
       )) { int32 }
   end
 
+  it "can invoke method on an abstract subclass if parent is also abstract (#4225)" do
+    begin
+      assert_type(%(
+        abstract class Foo
+          abstract def foo : Nil
+        end
+
+        abstract class Bar < Foo
+        end
+
+        class FooFacade
+          @impl :  Foo?
+
+          def foo : Nil
+            if impl = @impl
+              impl.foo
+            end
+          end
+        end
+
+        FooFacade.new.foo
+        1
+        )) { int32 }
+      rescue e : Crystal::TypeException
+        raise e.inner.not_nil!
+      end
+  end
+
   it "doesn't crash on instance variable assigned a proc, and never instantiated (#923)" do
     assert_type(%(
       class Klass
