@@ -355,6 +355,11 @@ module Crystal
         link_flags += " -rdynamic"
         link_flags += " -static" if static?
 
+        if target_machine.triple.includes?("emscripten")
+          cc = ENV["CC"]? || "emcc -s USE_PTHREADS=1 -g"
+          output_filename = output_filename.gsub(/\.o/, ".js")
+        end
+
         %(#{cc} #{object_name} -o '#{output_filename}' #{link_flags} #{program.lib_flags})
       end
     end

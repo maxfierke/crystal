@@ -186,6 +186,11 @@ lib LibLLVM
   fun initialize_arm_target = LLVMInitializeARMTarget
   fun initialize_arm_target_info = LLVMInitializeARMTargetInfo
   fun initialize_arm_target_mc = LLVMInitializeARMTargetMC
+  fun initialize_wasm_asm_printer = LLVMInitializeWebAssemblyAsmPrinter
+  fun initialize_wasm_asm_parser = LLVMInitializeWebAssemblyAsmParser
+  fun initialize_wasm_target = LLVMInitializeWebAssemblyTarget
+  fun initialize_wasm_target_info = LLVMInitializeWebAssemblyTargetInfo
+  fun initialize_wasm_target_mc = LLVMInitializeWebAssemblyTargetMC
   fun initialize_native_target = LLVMInitializeNativeTarget
   fun is_constant = LLVMIsConstant(val : ValueRef) : Int32
   fun is_function_var_arg = LLVMIsFunctionVarArg(ty : TypeRef) : Int32
