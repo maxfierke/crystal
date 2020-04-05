@@ -38,7 +38,7 @@ class Crystal::Codegen::Target
 
   def pointer_bit_width
     case @architecture
-    when "x86_64", "aarch64"
+    when "x86_64", "aarch64", "wasm64"
       64
     else
       32
@@ -83,7 +83,7 @@ class Crystal::Codegen::Target
   end
 
   def unix?
-    macos? || freebsd? || openbsd? || linux?
+    macos? || freebsd? || openbsd? || linux? || emscripten?
   end
 
   def gnu?
@@ -91,7 +91,15 @@ class Crystal::Codegen::Target
   end
 
   def musl?
-    environment_parts.any? &.in?("musl", "musleabi", "musleabihf")
+    environment_parts.any? &.in?("musl", "musleabi", "musleabihf") || emscripten?
+  end
+
+  def emscripten?
+    @environment.starts_with?("emscripten")
+  end
+
+  def wasi?
+    @environment.starts_with?("wasi")
   end
 
   def windows?
@@ -126,6 +134,8 @@ class Crystal::Codegen::Target
       if cpu.empty? && !features.includes?("fp") && armhf?
         features += "+vfp2"
       end
+    when "wasm32", "wasm64"
+      LLVM.init_wasm
     else
       raise Target::Error.new("Unsupported architecture for target triple: #{self}")
     end

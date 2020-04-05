@@ -31,6 +31,9 @@ class Crystal::Program
 
     flags.add "armhf" if codegen_target.armhf?
 
+    flags.add "emscripten" if codegen_target.emscripten?
+    flags.add "wasi" if codegen_target.wasi?
+
     flags.add "unix" if codegen_target.unix?
     flags.add "win32" if codegen_target.win32?
 
