@@ -55,6 +55,23 @@ module LLVM
     {% end %}
   end
 
+  def self.init_wasm
+    return if @@initialized_wasm
+    @@initialized_wasm = true
+
+    {% if LibLLVM::BUILT_TARGETS.includes?(:webassembly) %}
+      LibLLVM.initialize_wasm_target_info
+      LibLLVM.initialize_wasm_target
+      LibLLVM.initialize_wasm_target_mc
+      LibLLVM.initialize_wasm_asm_printer
+      LibLLVM.initialize_wasm_asm_parser
+      # LibLLVM.link_in_jit
+      LibLLVM.link_in_mc_jit
+    {% else %}
+      raise "ERROR: LLVM was built without wasm target"
+    {% end %}
+  end
+
   def self.start_multithreaded : Bool
     if multithreaded?
       true

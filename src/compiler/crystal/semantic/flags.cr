@@ -36,6 +36,9 @@ class Crystal::Program
 
     flags.add "armhf" if target.armhf?
 
+    flags.add "emscripten" if target.emscripten?
+    flags.add "wasi" if target.wasi?
+
     flags.add "unix" if target.unix?
     flags.add "win32" if target.win32?
 
