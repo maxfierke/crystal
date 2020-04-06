@@ -32,8 +32,8 @@ class IO::FileDescriptor < IO
 
   # :nodoc:
   def self.from_stdio(fd)
-    {% if flag?(:win32) %}
-      new(fd)
+    {% if flag?(:win32) || flag?(:wasi) %}
+      new(fd, false)
     {% else %}
       path = uninitialized UInt8[256]
 
