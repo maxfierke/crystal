@@ -13,6 +13,12 @@ private macro no_win(stmt)
   {% end %}
 end
 
+private macro no_wasi(stmt)
+  {% unless flag?(:wasi) %}
+    {{stmt}}
+  {% end %}
+end
+
 # This list requires ordered statements
 require "crystal/once"
 require "lib_c"
@@ -21,6 +27,8 @@ require "object"
 require "comparable"
 {% if flag?(:win32) %}
   require "windows_stubs"
+{% elsif flag?(:wasi) %}
+  require "wasi_stubs"
 {% end %}
 require "exception"
 require "iterable"
@@ -38,7 +46,7 @@ require "box"
 require "char"
 require "char/reader"
 require "class"
-require "concurrent"
+no_wasi require "concurrent"
 require "crystal/compiler_rt"
 require "crystal/main"
 require "deque"
@@ -57,7 +65,7 @@ require "intrinsics"
 require "io"
 require "kernel"
 require "math/math"
-no_win require "mutex"
+no_win no_wasi require "mutex"
 require "named_tuple"
 require "nil"
 require "humanize"
@@ -66,20 +74,20 @@ require "pointer"
 require "pretty_print"
 require "primitives"
 require "proc"
-no_win require "process"
+no_win no_wasi require "process"
 require "raise"
 require "random"
 require "range"
 require "reference"
 require "regex"
 require "set"
-no_win require "signal"
+no_win no_wasi require "signal"
 require "slice"
 require "static_array"
 require "struct"
 require "symbol"
 require "system"
-require "crystal/system/thread"
+no_wasi require "crystal/system/thread"
 require "time"
 require "tuple"
 require "unicode"

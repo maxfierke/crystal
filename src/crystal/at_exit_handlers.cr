@@ -1,3 +1,5 @@
+require "crystal/system/print_error"
+
 # :nodoc:
 module Crystal::AtExitHandlers
   @@running = false

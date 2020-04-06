@@ -1,9 +1,10 @@
-{% skip_file if flag?(:win32) %}
+{% skip_file if flag?(:win32) || flag?(:wasi) %}
 
 require "c/dlfcn"
 require "c/stdio"
 require "c/string"
 require "callstack/lib_unwind"
+require "crystal/system/print_error"
 
 {% if flag?(:darwin) %}
   require "debug/mach_o"

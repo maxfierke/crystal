@@ -1,31 +1,65 @@
 require "c/fcntl"
-require "io/evented"
+
+{% unless flag?(:wasi) %}
+  require "io/evented"
+{% end %}
 
 # :nodoc:
 module Crystal::System::FileDescriptor
-  include IO::Evented
+  {% unless flag?(:wasi) %}
+    include IO::Evented
+  {% end %}
 
   @volatile_fd : Atomic(Int32)
 
-  private def unbuffered_read(slice : Bytes)
-    evented_read(slice, "Error reading file") do
-      LibC.read(fd, slice, slice.size).tap do |return_code|
-        if return_code == -1 && Errno.value == Errno::EBADF
+  {% if flag?(:wasi) %}
+    private def unbuffered_read(slice : Bytes)
+      bytes_read = LibC.read(fd, slice, slice.size)
+      if bytes_read == -1
+        if Errno.value == Errno::EBADF
           raise IO::Error.new "File not open for reading"
+        else
+          raise IO::Error.from_errno("Error reading file")
         end
       end
+      bytes_read
     end
-  end
 
-  private def unbuffered_write(slice : Bytes)
-    evented_write(slice, "Error writing file") do |slice|
-      LibC.write(fd, slice, slice.size).tap do |return_code|
-        if return_code == -1 && Errno.value == Errno::EBADF
-          raise IO::Error.new "File not open for writing"
+    private def unbuffered_write(slice : Bytes)
+      until slice.empty?
+        bytes_written = LibC.write(fd, slice, slice.size)
+        if bytes_written == -1
+          if Errno.value == Errno::EBADF
+            raise IO::Error.new "File not open for writing"
+          else
+            raise IO::Error.from_errno("Error writing file")
+          end
+        end
+
+        slice += bytes_written
+      end
+    end
+  {% else %}
+    private def unbuffered_read(slice : Bytes)
+      evented_read(slice, "Error reading file") do
+        LibC.read(fd, slice, slice.size).tap do |return_code|
+          if return_code == -1 && Errno.value == Errno::EBADF
+            raise IO::Error.new "File not open for reading"
+          end
         end
       end
     end
-  end
+
+    private def unbuffered_write(slice : Bytes)
+      evented_write(slice, "Error writing file") do |slice|
+        LibC.write(fd, slice, slice.size).tap do |return_code|
+          if return_code == -1 && Errno.value == Errno::EBADF
+            raise IO::Error.new "File not open for writing"
+          end
+        end
+      end
+    end
+  {% end %}
 
   private def system_blocking?
     flags = fcntl(LibC::F_GETFL)
@@ -110,14 +144,18 @@ module Crystal::System::FileDescriptor
     # Mark the handle open, since we had to have dup'd a live handle.
     @closed = false
 
-    evented_reopen
+    {% unless flag?(:wasi) %}
+      evented_reopen
+    {% end %}
   end
 
   private def system_close
-    # Perform libevent cleanup before LibC.close.
-    # Using a file descriptor after it has been closed is never defined and can
-    # always lead to undefined results. This is not specific to libevent.
-    evented_close
+    {% unless flag?(:wasi) %}
+      # Perform libevent cleanup before LibC.close.
+      # Using a file descriptor after it has been closed is never defined and can
+      # always lead to undefined results. This is not specific to libevent.
+      evented_close
+    {% end %}
 
     file_descriptor_close
   end

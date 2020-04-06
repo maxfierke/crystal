@@ -2,6 +2,7 @@ require "c/signal"
 require "c/stdio"
 require "c/sys/wait"
 require "c/unistd"
+require "crystal/system/print_error"
 
 # Safely handle inter-process signals on POSIX systems.
 #
