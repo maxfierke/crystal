@@ -120,6 +120,14 @@ end
     LibC.printf("EXITING: __crystal_raise called")
     LibC.exit(1)
   end
+{% elsif flag?(:wasi) %}
+  require "callstack/lib_unwind"
+
+  # :nodoc:
+  fun __crystal_personality(version : Int32, actions : LibUnwind::Action, exception_class : UInt64, exception_object : LibUnwind::Exception*, context : Void*) : LibUnwind::ReasonCode
+    # TODO: Hopefully this doesn't do weird stuff
+    return LibUnwind::ReasonCode::NO_REASON
+  end
 {% elsif flag?(:arm) %}
   # On ARM EHABI the personality routine is responsible for actually
   # unwinding a single stack frame before returning (ARM EHABI Sec. 6.1).
@@ -192,10 +200,15 @@ end
   # :nodoc:
   @[Raises]
   fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
-    ret = LibUnwind.raise_exception(unwind_ex)
-    Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
-    Exception::CallStack.print_backtrace
-    LibC.exit(ret)
+    {% if flag?(:wasi) %}
+      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions."
+      LibC.exit(1)
+    {% else %}
+      ret = LibUnwind.raise_exception(unwind_ex)
+      Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
+      Exception::CallStack.print_backtrace
+      LibC.exit(ret)
+    {% end %}
   end
 
   # :nodoc:
@@ -208,7 +221,7 @@ end
   # This will set the exception's callstack if it hasn't been already.
   # Re-raising a previously catched exception won't replace the callstack.
   def raise(exception : Exception) : NoReturn
-    {% if flag?(:debug_raise) %}
+    {% if flag?(:debug_raise) || flag?(:wasi) %}
       STDERR.puts
       STDERR.puts "Attempting to raise: "
       exception.inspect_with_backtrace(STDERR)
