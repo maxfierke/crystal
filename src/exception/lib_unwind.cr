@@ -1,4 +1,4 @@
-{% if flag?(:openbsd) %}
+{% if flag?(:openbsd) || flag?(:wasi) %}
   @[Link("c++abi")]
 {% end %}
 lib LibUnwind

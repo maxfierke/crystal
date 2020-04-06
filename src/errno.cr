@@ -2,12 +2,15 @@ require "c/errno"
 require "c/string"
 
 lib LibC
-  {% if flag?(:linux) || flag?(:dragonfly) %}
+  {% if flag?(:linux) || flag?(:dragonfly) || flag?(:emscripten) %}
     fun __errno_location : Int*
   {% elsif flag?(:darwin) || flag?(:freebsd) %}
     fun __error : Int*
   {% elsif flag?(:netbsd) || flag?(:openbsd) %}
     fun __error = __errno : Int*
+  {% elsif flag?(:wasi) %}
+    @[ThreadLocal]
+    $errno : Int
   {% elsif flag?(:win32) %}
     fun _get_errno(value : Int*) : ErrnoT
     fun _set_errno(value : Int) : ErrnoT
@@ -41,10 +44,12 @@ enum Errno
 
   # Returns the value of libc's errno.
   def self.value : self
-    {% if flag?(:linux) || flag?(:dragonfly) %}
+    {% if flag?(:linux) || flag?(:dragonfly) || flag?(:emscripten) %}
       Errno.new LibC.__errno_location.value
     {% elsif flag?(:darwin) || flag?(:bsd) %}
       Errno.new LibC.__error.value
+    {% elsif flag?(:wasi) %}
+      Errno.new LibC.errno
     {% elsif flag?(:win32) %}
       ret = LibC._get_errno(out errno)
       raise RuntimeError.from_errno("_get_errno", Errno.new(ret)) unless ret == 0
@@ -54,10 +59,12 @@ enum Errno
 
   # Sets the value of libc's errno.
   def self.value=(errno : Errno)
-    {% if flag?(:linux) || flag?(:dragonfly) %}
+    {% if flag?(:linux) || flag?(:dragonfly) || flag?(:emscripten) %}
       LibC.__errno_location.value = errno.value
     {% elsif flag?(:darwin) || flag?(:bsd) %}
       LibC.__error.value = errno.value
+    {% elsif flag?(:wasi) %}
+      LibC.errno = errno.value
     {% elsif flag?(:win32) %}
       ret = LibC._set_errno(errno.value)
       raise RuntimeError.from_errno("_set_errno", ret) unless ret == 0

@@ -15,6 +15,8 @@ require "object"
 require "comparable"
 {% if flag?(:win32) %}
   require "windows_stubs"
+{% elsif flag?(:wasi) %}
+  require "wasi_stubs"
 {% end %}
 require "exception"
 require "iterable"
@@ -32,7 +34,9 @@ require "box"
 require "char"
 require "char/reader"
 require "class"
-require "concurrent"
+{% unless flag?(:wasi) %}
+  require "concurrent"
+{% end %}
 require "crystal/compiler_rt"
 require "crystal/main"
 require "deque"
@@ -51,7 +55,7 @@ require "intrinsics"
 require "io"
 require "kernel"
 require "math/math"
-{% unless flag?(:win32) %}
+{% unless flag?(:win32) || flag?(:wasi) %}
   require "mutex"
 {% end %}
 require "named_tuple"
@@ -62,14 +66,16 @@ require "pointer"
 require "pretty_print"
 require "primitives"
 require "proc"
-require "process"
+{% unless flag?(:wasi) %}
+  require "process"
+{% end %}
 require "raise"
 require "random"
 require "range"
 require "reference"
 require "regex"
 require "set"
-{% unless flag?(:win32) %}
+{% unless flag?(:win32) || flag?(:wasi) %}
   require "signal"
 {% end %}
 require "slice"
@@ -77,7 +83,9 @@ require "static_array"
 require "struct"
 require "symbol"
 require "system"
-require "crystal/system/thread"
+{% unless flag?(:wasi) %}
+  require "crystal/system/thread"
+{% end %}
 require "time"
 require "tuple"
 require "unicode"

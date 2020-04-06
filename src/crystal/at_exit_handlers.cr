@@ -1,3 +1,5 @@
+require "crystal/system/print_error"
+
 # :nodoc:
 module Crystal::AtExitHandlers
   private class_getter(handlers) { [] of Int32, ::Exception? -> }
