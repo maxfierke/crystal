@@ -134,17 +134,18 @@ $(LIB_CRYSTAL_TARGET): $(LIB_CRYSTAL_OBJS)
 # 		CRYSTAL_LIBRARY_PATH="/usr/local/opt/emscripten/libexec/system/lib" \
 # 		./bin/crystal build --cross-compile --target wasm32-unknown-emscripten \
 # 		--emit llvm-bc \
-# 		-Dgc_none -Dwithout_openssl -Dwithout_zlib -Dwithout_pcre \
+# 		-Dgc_none -Dwithout_openssl -Dwithout_zlib \
 # 		--error-trace --verbose \
 # 		samples/sudoku.cr
 
 sudoku.wasm: $(O)/crystal samples/sudoku.cr
-	export CC="$(WASI_SDK_PATH)/bin/clang --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot -g -O0"
-	CROSS_COMPILE_FLAGS=$(shell ./bin/crystal build --cross-compile --target wasm32-unknown-wasi \
+	$(eval CC=$(WASI_SDK_PATH)/bin/clang --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot -g -O0)
+	./bin/crystal build \
+		--cross-compile --target wasm32-unknown-wasi \
 		-Dgc_none -Dwithout_openssl -Dwithout_zlib \
-		--error-trace --verbose \
-		samples/sudoku.cr)
-	$(CROSS_COMPILE_FLAGS) -L$(HOME)/toolchains/crystal-wasm-libs -lpcre -ldl -lc++abi
+		--error-trace --verbose -d \
+		samples/sudoku.cr
+	$(CC) sudoku.o -v -o sudoku.wasm -L$(HOME)/toolchains/crystal-wasm-libs -lpcre -ldl -lc++abi
 
 tree.wasm: $(O)/crystal samples/tree.cr
 	$(eval CC=$(WASI_SDK_PATH)/bin/clang --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot -g -O0)
