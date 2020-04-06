@@ -201,7 +201,7 @@ end
   @[Raises]
   fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
     {% if flag?(:wasi) %}
-      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions."
+      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions.\n"
       LibC.exit(1)
     {% else %}
       ret = LibUnwind.raise_exception(unwind_ex)
@@ -221,7 +221,7 @@ end
   # This will set the exception's callstack if it hasn't been already.
   # Re-raising a previously catched exception won't replace the callstack.
   def raise(exception : Exception) : NoReturn
-    {% if flag?(:debug_raise) || flag?(:wasi) %}
+    {% if flag?(:debug_raise) %}
       STDERR.puts
       STDERR.puts "Attempting to raise: "
       exception.inspect_with_backtrace(STDERR)
