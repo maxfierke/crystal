@@ -60,6 +60,8 @@ else
   $(shell echo $(shell printf '\033[33m')Using $(LLVM_CONFIG) [version=$(shell $(LLVM_CONFIG) --version)]$(shell printf '\033[0m') >&2)
 endif
 
+WASI_SDK_PATH ?= $(HOME)/toolchains/wasi-sdk-8.0
+
 .PHONY: all
 all: crystal ## Build all files (currently crystal only) [default]
 
@@ -126,6 +128,32 @@ $(LLVM_EXT_OBJ): $(LLVM_EXT_DIR)/llvm_ext.cc
 
 $(LIB_CRYSTAL_TARGET): $(LIB_CRYSTAL_OBJS)
 	$(AR) -rcs $@ $^
+
+# sudoku.wasm: $(DEPS) $(SOURCES)
+# 	LLVM_CONFIG="/usr/local/opt/emscripten/libexec/llvm/bin/llvm-config" \
+# 		CRYSTAL_LIBRARY_PATH="/usr/local/opt/emscripten/libexec/system/lib" \
+# 		./bin/crystal build --cross-compile --target wasm32-unknown-emscripten \
+# 		--emit llvm-bc \
+# 		-Dgc_none -Dwithout_openssl -Dwithout_zlib -Dwithout_pcre \
+# 		--error-trace --verbose \
+# 		samples/sudoku.cr
+
+sudoku.wasm: $(O)/crystal samples/sudoku.cr
+	export CC="$(WASI_SDK_PATH)/bin/clang --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot -g -O0"
+	CROSS_COMPILE_FLAGS=$(shell ./bin/crystal build --cross-compile --target wasm32-unknown-wasi \
+		-Dgc_none -Dwithout_openssl -Dwithout_zlib \
+		--error-trace --verbose \
+		samples/sudoku.cr)
+	$(CROSS_COMPILE_FLAGS) -L$(HOME)/toolchains/crystal-wasm-libs -lpcre -ldl -lc++abi
+
+tree.wasm: $(O)/crystal samples/tree.cr
+	$(eval CC=$(WASI_SDK_PATH)/bin/clang --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot -g -O0)
+	./bin/crystal build \
+		--cross-compile --target wasm32-unknown-wasi \
+		-Dgc_none -Dwithout_openssl -Dwithout_zlib \
+		--error-trace --verbose -d \
+		samples/tree.cr
+	$(CC) tree.o -v -o tree.wasm -L$(HOME)/toolchains/crystal-wasm-libs -lpcre -ldl -lc++abi
 
 .PHONY: clean
 clean: clean_crystal ## Clean up built directories and files
