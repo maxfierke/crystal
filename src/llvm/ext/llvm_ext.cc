@@ -27,7 +27,11 @@ using namespace llvm;
 
 #if LLVM_VERSION_GE(4, 0)
 #include <llvm/Bitcode/BitcodeWriter.h>
+#if LLVM_VERSION_GE(11, 0)
+#include <llvm/Object/ModuleSummaryAnalysis.h> // This was reverted in master, so might not be permanent.
+#else
 #include <llvm/Analysis/ModuleSummaryAnalysis.h>
+#endif
 #endif
 
 #if LLVM_VERSION_LE(4, 0)
@@ -381,8 +385,17 @@ LLVMValueRef LLVMExtBuildCall(
 #if LLVM_VERSION_GE(3, 8)
   unsigned Len = Bundle ? 1 : 0;
   ArrayRef<OperandBundleDef> Bundles = makeArrayRef(Bundle, Len);
-  return wrap(unwrap(B)->CreateCall(
-      unwrap(Fn), makeArrayRef(unwrap(Args), NumArgs), Bundles, Name));
+
+  #if LLVM_VERSION_GE(11, 0)
+    Value *V = unwrap(Fn);
+    FunctionType *FnT =
+        cast<FunctionType>(cast<PointerType>(V->getType())->getElementType());
+    return wrap(unwrap(B)->CreateCall(
+        FnT, unwrap(Fn), makeArrayRef(unwrap(Args), NumArgs), Bundles, Name));
+  #else
+    return wrap(unwrap(B)->CreateCall(
+        unwrap(Fn), makeArrayRef(unwrap(Args), NumArgs), Bundles, Name));
+  #endif
 #else
   return LLVMBuildCall(B, Fn, Args, NumArgs, Name);
 #endif
@@ -395,9 +408,19 @@ LLVMValueRef LLVMExtBuildInvoke(
 #if LLVM_VERSION_GE(3, 8)
   unsigned Len = Bundle ? 1 : 0;
   ArrayRef<OperandBundleDef> Bundles = makeArrayRef(Bundle, Len);
-  return wrap(unwrap(B)->CreateInvoke(unwrap(Fn), unwrap(Then), unwrap(Catch),
-                                      makeArrayRef(unwrap(Args), NumArgs),
-                                      Bundles, Name));
+
+  #if LLVM_VERSION_GE(11, 0)
+    Value *V = unwrap(Fn);
+    FunctionType *FnT =
+        cast<FunctionType>(cast<PointerType>(V->getType())->getElementType());
+    return wrap(unwrap(B)->CreateInvoke(FnT, unwrap(Fn), unwrap(Then), unwrap(Catch),
+                                        makeArrayRef(unwrap(Args), NumArgs),
+                                        Bundles, Name));
+  #else
+    return wrap(unwrap(B)->CreateInvoke(unwrap(Fn), unwrap(Then), unwrap(Catch),
+                                        makeArrayRef(unwrap(Args), NumArgs),
+                                        Bundles, Name));
+  #endif
 #else
   return LLVMBuildInvoke(B, Fn, Args, NumArgs, Then, Catch, Name);
 #endif

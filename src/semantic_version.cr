@@ -30,7 +30,7 @@ struct SemanticVersion
   #
   # Raises `ArgumentError` if *str* is not a semantic version.
   def self.parse(str : String) : self
-    if m = str.match /^(\d+)\.(\d+)\.(\d+)(-([\w\.]+))?(\+(\w+))??$/
+    if m = str.gsub("git", "").match /^(\d+)\.(\d+)\.(\d+)(-([\w\.]+))?(\+(\w+))??$/
       major = m[1].to_i
       minor = m[2].to_i
       patch = m[3].to_i

@@ -122,13 +122,60 @@ end
     LibC.exit(1)
   end
 {% elsif flag?(:wasi) %}
-  require "callstack/lib_unwind"
+  {% if flag?(:no_exceptions) %}
+    require "callstack/lib_unwind"
 
-  # :nodoc:
-  fun __crystal_personality(version : Int32, actions : LibUnwind::Action, exception_class : UInt64, exception_object : LibUnwind::Exception*, context : Void*) : LibUnwind::ReasonCode
-    # TODO: Hopefully this doesn't do weird stuff
-    return LibUnwind::ReasonCode::NO_REASON
-  end
+    def raise(exception : Exception) : NoReturn
+      {% if flag?(:debug_raise) %}
+        STDERR.puts
+        STDERR.puts "Attempting to raise: "
+        exception.inspect_with_backtrace(STDERR)
+      {% end %}
+
+      exception.callstack ||= CallStack.new
+      uwind_ex = Pointer(LibUnwind::Exception).malloc
+      unwind_ex.value.exception_class = LibC::SizeT.zero
+      unwind_ex.value.exception_cleanup = LibC::SizeT.zero
+      unwind_ex.value.exception_object = exception.as(Void*)
+      unwind_ex.value.exception_type_id = exception.crystal_type_id
+      __crystal_raise(unwind_ex)
+    end
+
+    # :nodoc:
+    @[Raises]
+    fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
+      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions.\n"
+      LibC.exit(1)
+    end
+
+    # :nodoc:
+    fun __crystal_personality(version : Int32, actions : LibUnwind::Action, exception_class : UInt64, exception_object : LibUnwind::Exception*, context : Void*) : LibUnwind::ReasonCode
+      # TODO: Hopefully this doesn't do weird stuff
+      return LibUnwind::ReasonCode::NO_REASON
+    end
+  {% else %}
+    lib LibIntrinsics
+      fun throw = "llvm.wasm.throw"(tag : Int32, exp : Int8*) : NoReturn
+      # fun rethrow_in_catch = "llvm.wasm.rethrow.in.catch"
+    end
+
+    # Raises the *exception*.
+    #
+    # This will set the exception's callstack if it hasn't been already.
+    # Re-raising a previously catched exception won't replace the callstack.
+    def raise(exception : Exception) : NoReturn
+      {% if flag?(:debug_raise) %}
+        STDERR.puts
+        STDERR.puts "Attempting to raise: "
+        exception.inspect_with_backtrace(STDERR)
+      {% end %}
+
+      LibIntrinsics.throw(0, pointerof(exception).as(Int8*))
+
+      Crystal::System.print_error "Failed to raise exception %s.\n", exception.to_s
+      LibC.exit(1)
+    end
+  {% end %}
 {% elsif flag?(:arm) %}
   # On ARM EHABI the personality routine is responsible for actually
   # unwinding a single stack frame before returning (ARM EHABI Sec. 6.1).
@@ -197,19 +244,15 @@ end
   end
 {% end %}
 
-{% unless flag?(:win32) %}
+{% unless flag?(:win32) || flag?(:wasi) %}
   # :nodoc:
   @[Raises]
   fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
-    {% if flag?(:wasi) %}
-      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions.\n"
-      LibC.exit(1)
-    {% else %}
-      ret = LibUnwind.raise_exception(unwind_ex)
-      Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
-      CallStack.print_backtrace
-      LibC.exit(ret)
-    {% end %}
+
+    ret = LibUnwind.raise_exception(unwind_ex)
+    Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
+    CallStack.print_backtrace
+    LibC.exit(ret)
   end
 
   # :nodoc:

@@ -56,6 +56,10 @@ class LLVM::Context
     Type.new LibLLVM.int_type_in_context(self, bits)
   end
 
+  def token : Type
+    Type.new LibLLVM.token_type_in_context(self)
+  end
+
   def float : Type
     Type.new LibLLVM.float_type_in_context(self)
   end

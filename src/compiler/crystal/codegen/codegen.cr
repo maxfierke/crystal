@@ -184,6 +184,9 @@ module Crystal
       if @program.has_flag? "windows"
         @personality_name = "__CxxFrameHandler3"
         @main.personality_function = windows_personality_fun
+      elsif @program.has_flag? "wasi"
+        @personality_name = "_Unwind_CallPersonality"
+        @main.personality_function = wasi_personality_fun
       else
         @personality_name = "__crystal_personality"
       end
