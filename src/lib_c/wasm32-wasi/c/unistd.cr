@@ -20,6 +20,7 @@ lib LibC
   fun link(x0 : Char*, x1 : Char*) : Int
   fun lseek(x0 : Int, x1 : OffT, x2 : Int) : OffT
   fun read(x0 : Int, x1 : Void*, x2 : SizeT) : SSizeT
+  fun pread(x0 : Int, x1 : Void*, x2 : SizeT, x3 : OffT) : SSizeT
   fun readlink(x0 : Char*, x1 : Char*, x2 : SizeT) : SSizeT
   fun rmdir(x0 : Char*) : Int
   fun sleep(x0 : UInt) : UInt
