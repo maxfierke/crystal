@@ -1,6 +1,9 @@
 require "./sys/types"
 
 lib LibC
+  CLOCK_MONOTONIC = 1
+  CLOCK_REALTIME  = 0
+
   struct Tm
     tm_sec : Int
     tm_min : Int
