@@ -1,6 +1,6 @@
 # Mostly just copied from win32, with some modifications
 
-struct CallStack
+struct Exception::CallStack
   def self.skip(*args)
     # do nothing
   end

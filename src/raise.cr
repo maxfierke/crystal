@@ -121,7 +121,35 @@ end
     LibC.exit(1)
   end
 {% elsif flag?(:wasi) %}
-  require "callstack/lib_unwind"
+  require "exception/lib_unwind"
+
+  def raise(exception : Exception) : NoReturn
+    {% if flag?(:debug_raise) %}
+      STDERR.puts
+      STDERR.puts "Attempting to raise: "
+      exception.inspect_with_backtrace(STDERR)
+    {% end %}
+
+    exception.callstack ||= Exception::CallStack.new
+    unwind_ex = Pointer(LibUnwind::Exception).malloc
+    unwind_ex.value.exception_class = LibC::SizeT.zero
+    unwind_ex.value.exception_cleanup = LibC::SizeT.zero
+    unwind_ex.value.exception_object = exception.as(Void*)
+    unwind_ex.value.exception_type_id = exception.crystal_type_id
+    __crystal_raise(unwind_ex)
+  end
+
+  # :nodoc:
+  @[Raises]
+  fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
+    Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions.\n"
+    LibC.exit(1)
+  end
+
+  # :nodoc:
+  fun __crystal_get_exception(unwind_ex : LibUnwind::Exception*) : UInt64
+    unwind_ex.value.exception_object.address
+  end
 
   # :nodoc:
   fun __crystal_personality(version : Int32, actions : LibUnwind::Action, exception_class : UInt64, exception_object : LibUnwind::Exception*, context : Void*) : LibUnwind::ReasonCode
@@ -196,20 +224,15 @@ end
   end
 {% end %}
 
-{% unless flag?(:win32) %}
+{% unless flag?(:win32) || flag?(:wasi) %}
   # :nodoc:
   @[Raises]
   fun __crystal_raise(unwind_ex : LibUnwind::Exception*) : NoReturn
-    {% if flag?(:wasi) %}
-      Crystal::System.print_error "NOT IMPLEMENTED: wasm32-wasi has no support for handling exceptions.\n"
-      LibC.exit(1)
-    {% else %}
-      ret = LibUnwind.raise_exception(unwind_ex)
-      Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
-      Exception::CallStack.print_backtrace
-      Crystal::System.print_exception("\nTried to raise:", unwind_ex.value.exception_object.as(Exception))
-      LibC.exit(ret)
-    {% end %}
+    ret = LibUnwind.raise_exception(unwind_ex)
+    Crystal::System.print_error "Failed to raise an exception: %s\n", ret.to_s
+    Exception::CallStack.print_backtrace
+    Crystal::System.print_exception("\nTried to raise:", unwind_ex.value.exception_object.as(Exception))
+    LibC.exit(ret)
   end
 
   # :nodoc:
