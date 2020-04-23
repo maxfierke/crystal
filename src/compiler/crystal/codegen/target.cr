@@ -83,7 +83,7 @@ class Crystal::Codegen::Target
   end
 
   def unix?
-    macos? || freebsd? || openbsd? || linux? || emscripten?
+    macos? || freebsd? || openbsd? || linux?
   end
 
   def gnu?
@@ -91,11 +91,7 @@ class Crystal::Codegen::Target
   end
 
   def musl?
-    environment_parts.any? &.in?("musl", "musleabi", "musleabihf") || emscripten?
-  end
-
-  def emscripten?
-    @environment.starts_with?("emscripten")
+    environment_parts.any? &.in?("musl", "musleabi", "musleabihf")
   end
 
   def wasi?
