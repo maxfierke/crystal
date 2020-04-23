@@ -358,8 +358,16 @@ module Crystal
         end
 
         link_flags = @link_flags || ""
-        link_flags += " -rdynamic"
+
+        unless program.has_flag?("wasi")
+          link_flags += " -rdynamic"
+        end
+
         link_flags += " -static" if static?
+
+        if program.has_flag?("wasi")
+          output_filename += ".wasm"
+        end
 
         { %(#{cc} "${@}" -o '#{output_filename}' #{link_flags} #{program.lib_flags}), object_names }
       end
