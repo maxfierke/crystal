@@ -33,9 +33,9 @@ set +x
 # USAGE:
 #
 # For std spec:
-# $ spec/generate_windows_spec.cr > spec/win32_std_spec.cr
+# $ spec/generate_windows_spec.sh > spec/win32_std_spec.cr
 # For compiler spec:
-# $ spec/generate_windows_spec.cr compiler > spec/win32_compiler_spec.cr
+# $ spec/generate_windows_spec.sh compiler > spec/win32_compiler_spec.cr
 
 SPEC_SUITE=${1:-std}
 LINKER=${LINKER:-crystal-windows-wsl}

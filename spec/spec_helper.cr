@@ -4,7 +4,7 @@ ENV["CRYSTAL_PATH"] = "#{__DIR__}/../src"
 
 require "spec"
 
-{% skip_file if flag?(:win32) %}
+{% skip_file if flag?(:win32) || flag?(:wasi) %}
 
 require "../src/compiler/crystal/**"
 require "./support/syntax"
