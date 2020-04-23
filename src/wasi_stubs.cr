@@ -18,6 +18,11 @@ class Process
   end
 end
 
+class Fiber
+  def self.yield
+  end
+end
+
 class Mutex
   enum Protection
     Checked
