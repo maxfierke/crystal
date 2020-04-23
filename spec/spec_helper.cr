@@ -4,6 +4,8 @@ ENV["CRYSTAL_PATH"] = "#{__DIR__}/../src"
 
 require "spec"
 
+{% skip_file if flag?(:wasi) %}
+
 require "../src/compiler/crystal/**"
 require "./support/syntax"
 require "./support/tempfile"
