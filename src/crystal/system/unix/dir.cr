@@ -12,7 +12,12 @@ module Crystal::System::Dir
     # This means we need to reset `Errno` before calling `readdir`.
     Errno.value = Errno::NONE
     if entry = LibC.readdir(dir)
-      name = String.new(entry.value.d_name.to_unsafe)
+      {% if flag?(:wasi) %}
+        # Already a pointer on WASI
+        name = String.new(entry.value.d_name)
+      {% else %}
+        name = String.new(entry.value.d_name.to_unsafe)
+      {% end %}
       dir = entry.value.d_type == LibC::DT_DIR
       Entry.new(name, dir)
     elsif Errno.value != Errno::NONE
@@ -33,13 +38,19 @@ module Crystal::System::Dir
   end
 
   def self.current : String
-    unless dir = LibC.getcwd(nil, 0)
-      raise ::File::Error.from_errno("Error getting current directory", file: "./")
-    end
+    {% if flag?(:wasi) %}
+      # WASM has no current directory
+      # TODO(wasi): emulate with a global or something?
+      "/"
+    {% else %}
+      unless dir = LibC.getcwd(nil, 0)
+        raise ::File::Error.from_errno("Error getting current directory", file: "./")
+      end
 
-    dir_str = String.new(dir)
-    LibC.free(dir.as(Void*))
-    dir_str
+      dir_str = String.new(dir)
+      LibC.free(dir.as(Void*))
+      dir_str
+    {% end %}
   end
 
   def self.current=(path : String)
