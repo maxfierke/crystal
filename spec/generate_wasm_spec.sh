@@ -34,7 +34,7 @@ set +x
 SPEC_SUITE=${1:-std}
 RUNNER=${RUNNER:-wasmtime run --enable-memory}
 CRYSTAL_LIBRARY_PATH=${CRYSTAL_LIBRARY_PATH:-"$HOME/toolchains/crystal-wasm-libs/targets/wasm32-wasi"}
-WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-9.0"}
+WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-10.0"}
 
 if [ "$LINKER" == "crystal-windows-wsl" ] && [ -z "$WASI_SDK_PATH" ]; then
   echo "Missing environment variable MSVC_BUILD_TOOLS" >&2
@@ -68,7 +68,7 @@ for spec in $(find "spec/$SPEC_SUITE" -type f -iname "*_spec.cr" | sort); do
     continue
   fi
 
-  binary_path="./$(echo "$linker_command" | ggrep -oP '(?<="/Fe)(.*)(?=")').exe"
+  binary_path="./$(echo "$linker_command" | ggrep -oP '(?<="/Fe)(.*)(?=")').wasm"
 
   $RUNNER "$binary_path" > /dev/null; exit=$?
 
