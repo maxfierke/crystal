@@ -2,9 +2,7 @@
 
 set -euo pipefail
 
-RUNNER=${RUNNER:-wasmtime run}
 WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-10.0"}
-
 INITIAL_MEMORY=${INITIAL_MEMORY:-16777216}
 MAX_MEMORY=${MAX_MEMORY:-2147483648}
 STACK_SIZE=${STACK_SIZE:-5242880}
@@ -32,7 +30,11 @@ linker_command=$(bin/crystal build \
   --static \
   --error-trace \
   --link-flags="$WASM_LDFLAGS")
-echo $linker_command
 binary_path="./$(echo "$linker_command" | grep -oP '(?<=-o\s)(.*)(?=\.wasm)').wasm"
 
-exec $RUNNER "$binary_path" --enable-bulk-memory true --enable-reference-types true --enable-multi-value true
+eval $linker_command
+
+wavm run \
+  --abi=wasi \
+  --enable all-proposed \
+  "$binary_path"

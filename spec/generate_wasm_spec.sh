@@ -32,7 +32,7 @@ set +x
 # $ spec/generate_wasm_spec.sh compiler > spec/wasm32_compiler_spec.cr
 
 SPEC_SUITE=${1:-std}
-RUNNER=${RUNNER:-wasmtime run}
+RUNNER=${RUNNER:-wavm run --abi=wasi --enable all-proposed}
 WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-10.0"}
 
 INITIAL_MEMORY=${INITIAL_MEMORY:-16777216}
@@ -77,7 +77,7 @@ for spec in $(find "spec/$SPEC_SUITE" -type f -iname "*_spec.cr" | sort); do
 
   binary_path="./$(echo "$linker_command" | grep -oP '(?<=-o\s)(.*)(?=\.wasm)').wasm"
 
-  $RUNNER "$binary_path" --enable-bulk-memory true --enable-reference-types true --enable-multi-value true > /dev/null; exit=$?
+  $RUNNER "$binary_path" > /dev/null; exit=$?
 
   if [ $exit -eq 0 ] || [ $exit -eq 1 ]; then
     echo "$require"
