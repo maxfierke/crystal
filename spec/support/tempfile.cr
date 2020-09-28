@@ -37,6 +37,8 @@ end
 def with_temp_executable(name, file = __FILE__)
   {% if flag?(:win32) %}
     name += ".exe"
+  {% elsif flag?(:wasm32) || flag?(:wasm64) %}
+    name += ".wasm"
   {% end %}
   with_tempfile(name, file: file) do |tempname|
     yield tempname

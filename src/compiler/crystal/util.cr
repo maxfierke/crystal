@@ -29,6 +29,8 @@ module Crystal
     name = tempfile(basename)
     {% if flag?(:win32) %}
       name += ".exe"
+    {% elsif flag?(:wasm32) || flag?(:wasm64) %}
+      name += ".wasm"
     {% end %}
     name
   end

@@ -32,17 +32,22 @@ set +x
 # $ spec/generate_wasm_spec.sh compiler > spec/wasm32_compiler_spec.cr
 
 SPEC_SUITE=${1:-std}
-RUNNER=${RUNNER:-wasmtime run --enable-memory}
-CRYSTAL_LIBRARY_PATH=${CRYSTAL_LIBRARY_PATH:-"$HOME/toolchains/crystal-wasm-libs/targets/wasm32-wasi"}
+RUNNER=${RUNNER:-wasmtime run}
 WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-10.0"}
 
-if [ "$LINKER" == "crystal-windows-wsl" ] && [ -z "$WASI_SDK_PATH" ]; then
-  echo "Missing environment variable MSVC_BUILD_TOOLS" >&2
-  exit 1
-fi
+INITIAL_MEMORY=${INITIAL_MEMORY:-16777216}
+MAX_MEMORY=${MAX_MEMORY:-2147483648}
+STACK_SIZE=${STACK_SIZE:-5242880}
 
 export CC="$WASI_SDK_PATH/bin/clang --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
 export LIBRARY_PATH="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi"
+export CRYSTAL_LIBRARY_PATH="$HOME/toolchains/crystal-wasm-libs/targets/wasm32-wasi"
+export WASM_LDFLAGS="-Wl,--allow-undefined \
+-Wl,--initial-memory=${INITIAL_MEMORY} \
+-Wl,--max-memory=${MAX_MEMORY}         \
+-Wl,-z -Wl,stack-size=${STACK_SIZE}    \
+-Wl,--stack-first                      \
+-Wl,--no-threads"
 
 if [ -f "bin/crystal" ]; then
   CRYSTAL_BIN=${CRYSTAL_BIN:-bin/crystal}
@@ -58,19 +63,21 @@ echo
 for spec in $(find "spec/$SPEC_SUITE" -type f -iname "*_spec.cr" | sort); do
   require="require \"./${spec##spec/}\""
 
-  if ! linker_command=$($CRYSTAL_BIN build --cross-compile --target wasm32-wasi --static -Dgc_none -Dwithout_zlib -Dwithout_openssl --error-trace "$spec"); then
+  if ! linker_command=$($CRYSTAL_BIN build --cross-compile --target wasm32-wasi --static -Dgc_none -Dwithout_zlib -Dwithout_openssl --error-trace --link-flags="$WASM_LDFLAGS" "$spec"); then
     echo "# $require (failed codegen)"
     continue
   fi
 
-  if ! eval $linker_command >/dev/null 2>/dev/null; then
+  echo "$linker_command" 1>&2
+
+  if ! eval $linker_command >/dev/null; then
     echo "# $require (failed linking)"
     continue
   fi
 
-  binary_path="./$(echo "$linker_command" | ggrep -oP '(?<="/Fe)(.*)(?=")').wasm"
+  binary_path="./$(echo "$linker_command" | grep -oP '(?<=-o\s)(.*)(?=\.wasm)').wasm"
 
-  $RUNNER "$binary_path" > /dev/null; exit=$?
+  $RUNNER "$binary_path" --enable-bulk-memory true --enable-reference-types true --enable-multi-value true > /dev/null; exit=$?
 
   if [ $exit -eq 0 ] || [ $exit -eq 1 ]; then
     echo "$require"
