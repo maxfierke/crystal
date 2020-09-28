@@ -80,9 +80,13 @@ module Crystal::System::File
   end
 
   def self.chmod(path, mode)
-    if LibC.chmod(path, mode) == -1
-      raise ::File::Error.from_errno("Error changing permissions", file: path)
-    end
+    {% if flag?(:wasi) %}
+      raise ::File::Error.new("chmod not supported on WASI", file: path)
+    {% else %}
+      if LibC.chmod(path, mode) == -1
+        raise ::File::Error.from_errno("Error changing permissions", file: path)
+      end
+    {% end %}
   end
 
   def self.delete(path)

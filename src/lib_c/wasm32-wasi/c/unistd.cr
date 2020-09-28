@@ -15,7 +15,6 @@ lib LibC
   fun fdatasync(x0 : Int) : Int
   fun fsync(x0 : Int) : Int
   fun ftruncate(x0 : Int, x1 : OffT) : Int
-  fun gethostname(x0 : Char*, x1 : SizeT) : Int
   fun isatty(x0 : Int) : Int
   fun link(x0 : Char*, x1 : Char*) : Int
   fun lseek(x0 : Int, x1 : OffT, x2 : Int) : OffT
