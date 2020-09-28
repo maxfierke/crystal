@@ -98,4 +98,5 @@ struct Time::Format
   end
 end
 
+require "./format/custom/rfc_3339"
 require "./format/custom/*"

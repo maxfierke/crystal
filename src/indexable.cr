@@ -1,3 +1,5 @@
+require "./range/bsearch"
+
 # A container that allows accessing elements via a numeric index.
 #
 # Indexing starts at `0`. A negative index is assumed to be

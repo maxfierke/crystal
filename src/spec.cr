@@ -1,4 +1,13 @@
 require "./spec/dsl"
+require "./spec/example"
+require "./spec/expectations"
+require "./spec/source"
+require "./spec/context"
+require "./spec/filters"
+require "./spec/formatter"
+require "./spec/methods"
+require "./spec/junit_formatter"
+require "./spec/tap_formatter"
 
 # Crystal's built-in testing library. It provides a structure for writing executable examples
 # of how your code should behave. A domain specific language allows you to write them in a way similar to natural language.

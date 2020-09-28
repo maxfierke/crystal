@@ -1,5 +1,11 @@
 require "crystal/system/time"
 
+struct Time
+end
+
+require "./time/format"
+require "./time/format/custom/rfc_3339"
+
 # `Time` represents a date-time instant in
 # [incremental time](https://www.w3.org/International/articles/definitions-time/#incremental_time)
 # observed in a specific time zone.

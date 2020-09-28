@@ -1,4 +1,6 @@
 require "./regex/*"
+require "./regex/lib_pcre"
+require "./regex/match_data"
 
 # A `Regex` represents a regular expression, a pattern that describes the
 # contents of strings. A `Regex` can determine whether or not a string matches

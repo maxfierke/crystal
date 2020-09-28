@@ -1,12 +1,16 @@
 require "c/fcntl"
 
-{% unless flag?(:wasi) %}
+{% if flag?(:wasi) %}
+  require "io/buffered"
+{% else %}
   require "io/evented"
 {% end %}
 
 # :nodoc:
 module Crystal::System::FileDescriptor
-  {% unless flag?(:wasi) %}
+  {% if flag?(:wasi) %}
+    include IO::Buffered
+  {% else %}
     include IO::Evented
   {% end %}
 

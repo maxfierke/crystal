@@ -1,4 +1,5 @@
 require "base64"
+require "io/byte_format"
 require "random/pcg32"
 
 # `Random` provides an interface for random values generation, using a pseudo random number generator (PRNG).

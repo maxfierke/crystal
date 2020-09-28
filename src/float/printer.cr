@@ -1,3 +1,5 @@
+require "./printer/ieee"
+require "./printer/grisu3"
 require "./printer/*"
 
 # :nodoc:

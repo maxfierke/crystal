@@ -1,7 +1,16 @@
+require "io"
+require "io/encoding"
+require "io/error"
+require "io/file_descriptor"
+require "time"
+require "time/location"
+require "time/span"
+
 class File < IO::FileDescriptor
 end
 
 require "./file/error"
+require "./file/info"
 require "crystal/system/file"
 
 # A `File` instance represents a file entry in the local file system and allows using it as an `IO`.
