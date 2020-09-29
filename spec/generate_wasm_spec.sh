@@ -33,7 +33,7 @@ set +x
 
 SPEC_SUITE=${1:-std}
 RUNNER=${RUNNER:-wavm run --abi=wasi --enable all-proposed}
-WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-10.0"}
+WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-11.0"}
 
 INITIAL_MEMORY=${INITIAL_MEMORY:-16777216}
 MAX_MEMORY=${MAX_MEMORY:-2147483648}
