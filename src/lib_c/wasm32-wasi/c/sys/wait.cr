@@ -2,7 +2,7 @@ require "./types"
 require "../signal"
 
 lib LibC
-  WNOHANG = 0x00000001
+  WNOHANG = 1
 
-  fun waitpid(x0 : PidT, x1 : Int*, x2 : Int) : PidT
+  fun waitpid(pid : Int, stat_loc : Int*, options : Int) : Int
 end

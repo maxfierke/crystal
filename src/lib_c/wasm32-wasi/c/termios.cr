@@ -1,119 +1,97 @@
 require "./sys/types"
 
 lib LibC
-  VEOF      =          0
-  VEOL      =          1
-  VERASE    =          3
-  VINTR     =          8
-  VKILL     =          5
-  VMIN      =         16
-  VQUIT     =          9
-  VSTART    =         12
-  VSTOP     =         13
-  VSUSP     =         10
-  BRKINT    = 0x00000002
-  ICRNL     = 0x00000100
-  IGNBRK    = 0x00000001
-  IGNCR     = 0x00000080
-  IGNPAR    = 0x00000004
-  INLCR     = 0x00000040
-  INPCK     = 0x00000010
-  ISTRIP    = 0x00000020
-  IXANY     = 0x00000800
-  IXOFF     = 0x00000400
-  IXON      = 0x00000200
-  PARMRK    = 0x00000008
-  OPOST     = 0x00000001
-  ONLCR     = 0x00000002
-  OCRNL     = 0x00000010
-  ONOCR     = 0x00000020
-  ONLRET    = 0x00000040
-  OFDEL     = 0x00020000
-  OFILL     = 0x00000080
-  CRDLY     = 0x00003000
-  CR0       = 0x00000000
-  CR1       = 0x00001000
-  CR2       = 0x00002000
-  CR3       = 0x00003000
-  TABDLY    = 0x00000c04
-  TAB0      = 0x00000000
-  TAB1      = 0x00000400
-  TAB2      = 0x00000800
-  TAB3      = 0x00000004
-  BSDLY     = 0x00008000
-  BS0       = 0x00000000
-  BS1       = 0x00008000
-  VTDLY     = 0x00010000
-  VT0       = 0x00000000
-  VT1       = 0x00010000
-  FFDLY     = 0x00004000
-  FF0       = 0x00000000
-  FF1       = 0x00004000
-  NLDLY     = 0x00000300
-  NL0       = 0x00000000
-  NL1       = 0x00000100
-  B0        =          0
-  B50       =         50
-  B75       =         75
-  B110      =        110
-  B134      =        134
-  B150      =        150
-  B200      =        200
-  B300      =        300
-  B600      =        600
-  B1200     =       1200
-  B1800     =       1800
-  B2400     =       2400
-  B4800     =       4800
-  B9600     =       9600
-  B19200    =      19200
-  B38400    =      38400
-  CSIZE     = 0x00000300
-  CS5       = 0x00000000
-  CS6       = 0x00000100
-  CS7       = 0x00000200
-  CS8       = 0x00000300
-  CSTOPB    = 0x00000400
-  CREAD     = 0x00000800
-  PARENB    = 0x00001000
-  PARODD    = 0x00002000
-  HUPCL     = 0x00004000
-  CLOCAL    = 0x00008000
-  ECHO      = 0x00000008
-  ECHOE     = 0x00000002
-  ECHOK     = 0x00000004
-  ECHONL    = 0x00000010
-  ICANON    = 0x00000100
-  IEXTEN    = 0x00000400
-  ISIG      = 0x00000080
-  NOFLSH    = 0x80000000
-  TOSTOP    = 0x00400000
-  TCSANOW   =          0
-  TCSADRAIN =          1
-  TCSAFLUSH =          2
-  TCIFLUSH  =          1
-  TCIOFLUSH =          3
-  TCOFLUSH  =          2
-  TCIOFF    =          3
-  TCION     =          4
-  TCOOFF    =          1
-  TCOON     =          2
+  VEOF      =        4
+  VEOL      =       11
+  VERASE    =        2
+  VINTR     =        0
+  VKILL     =        3
+  VMIN      =        6
+  VQUIT     =        1
+  VSTART    =        8
+  VSTOP     =        9
+  VSUSP     =       10
+  BRKINT    = 0o000002
+  ICRNL     = 0o000400
+  IGNBRK    = 0o000001
+  IGNCR     = 0o000200
+  IGNPAR    = 0o000004
+  INLCR     = 0o000100
+  INPCK     = 0o000020
+  ISTRIP    = 0o000040
+  IXANY     = 0o004000
+  IXOFF     = 0o010000
+  IXON      = 0o002000
+  PARMRK    = 0o000010
+  OPOST     = 0o000001
+  ONLCR     = 0o000004
+  OCRNL     = 0o000010
+  ONOCR     = 0o000020
+  ONLRET    = 0o000040
+  OFDEL     = 0o000200
+  OFILL     = 0o000100
+  VTDLY     = 0o040000
+  VT0       = 0o000000
+  VT1       = 0o040000
+  B0        = 0o000000
+  B50       = 0o000001
+  B75       = 0o000002
+  B110      = 0o000003
+  B134      = 0o000004
+  B150      = 0o000005
+  B200      = 0o000006
+  B300      = 0o000007
+  B600      = 0o000010
+  B1200     = 0o000011
+  B1800     = 0o000012
+  B2400     = 0o000013
+  B4800     = 0o000014
+  B9600     = 0o000015
+  B19200    = 0o000016
+  B38400    = 0o000017
+  CSIZE     = 0o000060
+  CS5       = 0o000000
+  CS6       = 0o000020
+  CS7       = 0o000040
+  CS8       = 0o000060
+  CSTOPB    = 0o000100
+  CREAD     = 0o000200
+  PARENB    = 0o000400
+  PARODD    = 0o001000
+  HUPCL     = 0o002000
+  CLOCAL    = 0o004000
+  ECHO      = 0o000010
+  ECHOE     = 0o000020
+  ECHOK     = 0o000040
+  ECHONL    = 0o000100
+  ICANON    = 0o000002
+  IEXTEN    = 0o100000
+  ISIG      = 0o000001
+  NOFLSH    = 0o000200
+  TOSTOP    = 0o000400
+  TCSANOW   =        0
+  TCSADRAIN =        1
+  TCSAFLUSH =        2
+  TCIFLUSH  =        0
+  TCIOFLUSH =        2
+  TCOFLUSH  =        1
+  TCIOFF    =        2
+  TCION     =        3
+  TCOOFF    =        0
+  TCOON     =        1
 
-  alias CcT = UChar
-  alias SpeedT = ULong
-  alias TcflagT = ULong
+  alias CcT = Int
+  alias SpeedT = UInt
+  alias TcflagT = UInt
 
   struct Termios
     c_iflag : TcflagT
     c_oflag : TcflagT
     c_cflag : TcflagT
     c_lflag : TcflagT
-    c_cc : StaticArray(CcT, 20)
+    c_line : CcT
+    c_cc : StaticArray(CcT, 32)
     c_ispeed : SpeedT
     c_ospeed : SpeedT
   end
-
-  fun tcgetattr(x0 : Int, x1 : Termios*) : Int
-  fun tcsetattr(x0 : Int, x1 : Int, x2 : Termios*) : Int
-  fun cfmakeraw(x0 : Termios*) : Void
 end

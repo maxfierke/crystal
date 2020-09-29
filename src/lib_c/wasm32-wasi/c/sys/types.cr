@@ -14,14 +14,40 @@ lib LibC
   alias NlinkT = ULongLong
   alias OffT = LongLong
   alias PidT = Int
-  alias PthreadAttrT = UChar
-  alias PthreadCondT = UChar
+
+  union PthreadAttrTU
+    __i : StaticArray(Int, 14)
+    __vi : StaticArray(Int, 14)
+    __s : StaticArray(ULong, 7)
+  end
+
+  struct PthreadAttrT
+    __u : PthreadAttrTU
+  end
+
+  union PthreadCondTU
+    __i : StaticArray(Int, 12)
+    __vi : StaticArray(Int, 12)
+    __p : StaticArray(Void*, 6)
+  end
+
+  struct PthreadCondT
+    __u : PthreadCondTU
+  end
 
   struct PthreadCondattrT
     __attr : UInt
   end
 
-  alias PthreadMutexT = UChar
+  union PthreadMutexTU
+    __i : StaticArray(Int, 10)
+    __vi : StaticArray(Int, 10)
+    __p : StaticArray(Void*, 5)
+  end
+
+  struct PthreadMutexT
+    __u : PthreadMutexTU
+  end
 
   struct PthreadMutexattrT
     __attr : UInt

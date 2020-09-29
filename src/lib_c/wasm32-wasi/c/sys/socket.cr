@@ -8,9 +8,9 @@ lib LibC
   AF_INET6     =          2
   AF_UNIX      =          3
   AF_UNSPEC    =          0
-  SHUT_RD      =    0x01_u8
+  SHUT_RD      =       1_u8
   SHUT_RDWR    = SHUT_RD | SHUT_WR
-  SHUT_WR      =    0x02_u8
+  SHUT_WR      =       2_u8
   SOCK_CLOEXEC = 0x00002000
 
   alias SocklenT = UInt
