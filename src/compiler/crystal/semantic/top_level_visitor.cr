@@ -477,6 +477,8 @@ class Crystal::TopLevelVisitor < Crystal::SemanticVisitor
         type.add_link_annotation(link_annotation)
       when @program.call_convention_annotation
         type.call_convention = parse_call_convention(ann, type.call_convention)
+      when @program.import_module_annotation
+        type.import_module = parse_import_module(ann, type.import_module)
       else
         # not a built-in annotation
       end
@@ -860,11 +862,15 @@ class Crystal::TopLevelVisitor < Crystal::SemanticVisitor
     external = External.new(node.name, ([] of Arg), node.body, node.real_name).at(node)
 
     call_convention = nil
+    import_module = nil
+
     process_def_annotations(external, annotations) do |annotation_type, ann|
       if annotation_type == @program.call_convention_annotation
         call_convention = parse_call_convention(ann, call_convention)
+      elsif annotation_type == @program.import_module_annotation
+        import_module = parse_import_module(ann, import_module)
       else
-        ann.raise "funs can only be annotated with: NoInline, AlwaysInline, Naked, ReturnsTwice, Raises, CallConvention"
+        ann.raise "funs can only be annotated with: NoInline, AlwaysInline, Naked, ReturnsTwice, Raises, CallConvention, ImportModule"
       end
     end
 
@@ -877,9 +883,14 @@ class Crystal::TopLevelVisitor < Crystal::SemanticVisitor
       call_convention = scope.call_convention
     end
 
+    if !call_convention && scope.is_a?(LibType)
+      import_module = scope.import_module
+    end
+
     # We fill the arguments and return type in TypeDeclarationVisitor
     external.doc = node.doc
     external.call_convention = call_convention
+    external.import_module = import_module
     external.varargs = node.varargs?
     external.fun_def = node
     node.external = external
@@ -1053,6 +1064,27 @@ class Crystal::TopLevelVisitor < Crystal::SemanticVisitor
       call_convention_node.raise "invalid call convention. Valid values are #{LLVM::CallConvention.values.join ", "}"
     end
     call_convention
+  end
+
+  def parse_import_module(ann, import_module)
+    if import_module
+      ann.raise "ImportModule already specified"
+    end
+
+    if ann.args.size != 1
+      ann.wrong_number_of_arguments "annotation ImportModule", ann.args.size, 1
+    end
+
+    import_module_node = ann.args.first
+    unless import_module_node.is_a?(StringLiteral)
+      import_module_node.raise "argument to CallConvention must be a string"
+    end
+
+    value = import_module_node.value
+    if value.empty?
+      import_module_node.raise "invalid import module. cannot be empty."
+    end
+    value
   end
 
   def attach_doc(type, node, annotations)

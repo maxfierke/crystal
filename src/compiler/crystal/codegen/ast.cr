@@ -35,6 +35,10 @@ module Crystal
   class Def
     property? abi_info = false
 
+    def import_module
+      nil
+    end
+
     def mangled_name(program, self_type)
       name = String.build do |str|
         str << '*'

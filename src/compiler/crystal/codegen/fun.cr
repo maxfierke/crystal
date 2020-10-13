@@ -357,6 +357,12 @@ class Crystal::CodeGenVisitor
       context.fun.call_convention = call_convention
     end
 
+    if @program.has_flag?("wasi")
+      if import_module = target_def.import_module
+        context.fun.add_target_dependent_attribute("wasm-import-module", import_module)
+      end
+    end
+
     i = 0
     args.each do |arg|
       param = context.fun.params[i + offset]

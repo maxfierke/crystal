@@ -12,6 +12,7 @@ module LLVM
       Convergent
       Dereferenceable
       DereferenceableOrNull
+      ImportModule
       InAlloca
       InReg
       InaccessibleMemOnly
@@ -88,6 +89,7 @@ module LLVM
         kinds[Convergent] = kind_for_name("convergent")
         kinds[Dereferenceable] = kind_for_name("dereferenceable")
         kinds[DereferenceableOrNull] = kind_for_name("dereferenceable_or_null")
+        kinds[ImportModule] = kind_for_name("import_module")
         kinds[InAlloca] = kind_for_name("inalloca")
         kinds[InReg] = kind_for_name("inreg")
         kinds[InaccessibleMemOnly] = kind_for_name("inaccessiblememonly")

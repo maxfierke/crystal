@@ -2524,6 +2524,7 @@ module Crystal
     getter link_annotations : Array(LinkAnnotation)?
     property? used = false
     property call_convention : LLVM::CallConvention?
+    property import_module : String?
 
     def add_link_annotation(link_annotation : LinkAnnotation)
       link_annotations = @link_annotations ||= [] of LinkAnnotation
