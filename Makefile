@@ -24,11 +24,21 @@ debug ?=        ## Add symbolic debug info
 verbose ?=      ## Run specs in verbose mode
 junit_output ?= ## Path to output junit results
 static ?=       ## Enable static linking
+target ?=       ## Target triple to compile Crystal for
 
-O := .build
+LLVM_CONFIG := $(shell src/llvm/ext/find-llvm-config)
+
+ifeq (${LLVM_CONFIG},)
+  $(error Could not locate compatible llvm-config, make sure it is installed and in your PATH, or set LLVM_CONFIG. Compatible versions: $(shell cat src/llvm/ext/llvm-versions.txt))
+else
+  $(shell echo $(shell printf '\033[33m')Using $(LLVM_CONFIG) [version=$(shell $(LLVM_CONFIG) --version)]$(shell printf '\033[0m') >&2)
+endif
+
+LLVM_HOST_TARGET := $(shell $(LLVM_CONFIG) --host-target)
+CRYSTAL_CONFIG_TARGET := $(shell src/llvm/ext/normalize-llvm-target $(if $(target),$(target),$(LLVM_HOST_TARGET)))
+O := .build/$(CRYSTAL_CONFIG_TARGET)
 SOURCES := $(shell find src -name '*.cr')
 SPEC_SOURCES := $(shell find spec -name '*.cr')
-override FLAGS += $(if $(release),--release )$(if $(stats),--stats )$(if $(progress),--progress )$(if $(threads),--threads $(threads) )$(if $(debug),-d )$(if $(static),--static )$(if $(LDFLAGS),--link-flags="$(LDFLAGS)" )
 SPEC_WARNINGS_OFF := --exclude-warnings spec/std --exclude-warnings spec/compiler
 SPEC_FLAGS := $(if $(verbose),-v )$(if $(junit_output),--junit_output $(junit_output) )
 CRYSTAL_CONFIG_LIBRARY_PATH := $(shell bin/crystal env CRYSTAL_LIBRARY_PATH 2> /dev/null)
@@ -37,27 +47,24 @@ SOURCE_DATE_EPOCH := $(shell (git show -s --format=%ct HEAD || stat -c "%Y" Make
 EXPORTS := \
   CRYSTAL_CONFIG_LIBRARY_PATH="$(CRYSTAL_CONFIG_LIBRARY_PATH)" \
   CRYSTAL_CONFIG_BUILD_COMMIT="$(CRYSTAL_CONFIG_BUILD_COMMIT)" \
-	SOURCE_DATE_EPOCH="$(SOURCE_DATE_EPOCH)"
+  CRYSTAL_CONFIG_TARGET="$(CRYSTAL_CONFIG_TARGET)" \
+  SOURCE_DATE_EPOCH="$(SOURCE_DATE_EPOCH)"
 SHELL = sh
-LLVM_CONFIG := $(shell src/llvm/ext/find-llvm-config)
 LLVM_EXT_DIR = src/llvm/ext
-LLVM_EXT_OBJ = $(LLVM_EXT_DIR)/llvm_ext.o
+LLVM_EXT_OBJ = $(LLVM_EXT_DIR)/$(CRYSTAL_CONFIG_TARGET)/llvm_ext.o
 LIB_CRYSTAL_SOURCES = $(shell find src/ext -name '*.c')
-LIB_CRYSTAL_OBJS = $(subst .c,.o,$(LIB_CRYSTAL_SOURCES))
-LIB_CRYSTAL_TARGET = src/ext/libcrystal.a
+LIB_CRYSTAL_OBJS = $(subst src/ext,src/ext/$(CRYSTAL_CONFIG_TARGET),$(subst .c,.o,$(LIB_CRYSTAL_SOURCES)))
+LIB_CRYSTAL_TARGET = src/ext/$(CRYSTAL_CONFIG_TARGET)/libcrystal.a
 DEPS = $(LLVM_EXT_OBJ) $(LIB_CRYSTAL_TARGET)
-CFLAGS += -fPIC $(if $(debug),-g -O0)
-CXXFLAGS += $(if $(debug),-g -O0)
+CFLAGS += -fPIC $(if $(debug),-g -O0) --target="$(CRYSTAL_CONFIG_TARGET)"
+CXXFLAGS += $(if $(debug),-g -O0) --target="$(CRYSTAL_CONFIG_TARGET)"
+LDFLAGS += $(shell $(LLVM_CONFIG) --ldflags)
 CRYSTAL_VERSION ?= $(shell cat src/VERSION)
+
+override FLAGS += --target="$(CRYSTAL_CONFIG_TARGET)" $(if $(release),--release )$(if $(stats),--stats )$(if $(progress),--progress )$(if $(threads),--threads $(threads) )$(if $(debug),-d )$(if $(static),--static )$(if $(LDFLAGS),--link-flags="$(LDFLAGS)" )
 
 ifeq ($(shell command -v ld.lld >/dev/null && uname -s),Linux)
   EXPORT_CC ?= CC="cc -fuse-ld=lld"
-endif
-
-ifeq (${LLVM_CONFIG},)
-  $(error Could not locate compatible llvm-config, make sure it is installed and in your PATH, or set LLVM_CONFIG. Compatible versions: $(shell cat src/llvm/ext/llvm-versions.txt))
-else
-  $(shell echo $(shell printf '\033[33m')Using $(LLVM_CONFIG) [version=$(shell $(LLVM_CONFIG) --version)]$(shell printf '\033[0m') >&2)
 endif
 
 .PHONY: all
@@ -82,15 +89,15 @@ help: ## Show this help
 
 .PHONY: spec
 spec: $(O)/all_spec ## Run all specs
-	$(O)/all_spec $(SPEC_FLAGS)
+	$(EXPORTS) $(O)/all_spec $(SPEC_FLAGS)
 
 .PHONY: std_spec
 std_spec: $(O)/std_spec ## Run standard library specs
-	$(O)/std_spec $(SPEC_FLAGS)
+	$(EXPORTS) $(O)/std_spec $(SPEC_FLAGS)
 
 .PHONY: compiler_spec
 compiler_spec: $(O)/compiler_spec ## Run compiler specs
-	$(O)/compiler_spec $(SPEC_FLAGS)
+	$(EXPORTS) $(O)/compiler_spec $(SPEC_FLAGS)
 
 .PHONY: docs
 docs: ## Generate standard library documentation
@@ -111,7 +118,7 @@ $(O)/all_spec: $(DEPS) $(SOURCES) $(SPEC_SOURCES)
 
 $(O)/std_spec: $(DEPS) $(SOURCES) $(SPEC_SOURCES)
 	@mkdir -p $(O)
-	$(EXPORT_CC) ./bin/crystal build $(FLAGS) $(SPEC_WARNINGS_OFF) -o $@ spec/std_spec.cr
+	$(EXPORT_CC) $(EXPORTS) ./bin/crystal build $(FLAGS) $(SPEC_WARNINGS_OFF) -o $@ spec/std_spec.cr
 
 $(O)/compiler_spec: $(DEPS) $(SOURCES) $(SPEC_SOURCES)
 	@mkdir -p $(O)
@@ -121,10 +128,16 @@ $(O)/crystal: $(DEPS) $(SOURCES)
 	@mkdir -p $(O)
 	$(EXPORTS) ./bin/crystal build $(FLAGS) -o $@ src/compiler/crystal.cr -D without_openssl -D without_zlib
 
+src/ext/$(CRYSTAL_CONFIG_TARGET)/%.o: src/ext/%.c
+	@mkdir -p $$(dirname $@)
+	$(CC) -c $(CFLAGS) -o $@ $<
+
 $(LLVM_EXT_OBJ): $(LLVM_EXT_DIR)/llvm_ext.cc
+	@mkdir -p $$(dirname $@)
 	$(CXX) -c $(CXXFLAGS) -o $@ $< $(shell $(LLVM_CONFIG) --cxxflags)
 
 $(LIB_CRYSTAL_TARGET): $(LIB_CRYSTAL_OBJS)
+	@mkdir -p $$(dirname $@)
 	$(AR) -rcs $@ $^
 
 .PHONY: clean

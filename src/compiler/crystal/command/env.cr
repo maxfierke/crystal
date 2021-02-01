@@ -7,11 +7,12 @@ class Crystal::Command
     end
 
     vars = {
-      "CRYSTAL_CACHE_DIR"    => CacheDir.instance.dir,
-      "CRYSTAL_PATH"         => CrystalPath.default_path,
-      "CRYSTAL_VERSION"      => Config.version || "",
-      "CRYSTAL_LIBRARY_PATH" => CrystalLibraryPath.default_path,
-      "CRYSTAL_OPTS"         => ENV.fetch("CRYSTAL_OPTS", ""),
+      "CRYSTAL_CACHE_DIR"     => CacheDir.instance.dir,
+      "CRYSTAL_PATH"          => CrystalPath.default_path,
+      "CRYSTAL_VERSION"       => Config.version || "",
+      "CRYSTAL_LIBRARY_PATH"  => CrystalLibraryPath.default_path,
+      "CRYSTAL_CONFIG_TARGET" => Config.host_target.to_s,
+      "CRYSTAL_OPTS"          => ENV.fetch("CRYSTAL_OPTS", ""),
     }
 
     if ARGV.empty?

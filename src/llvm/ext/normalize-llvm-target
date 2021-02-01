@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# This should match the normalization logic
+# in src/compiler/crystal/codegen/target.cr
+target=$(echo "$1" |
+  sed -r 's/darwin(.*)/darwin/' |
+  sed 's/arm64/aarch64/' |
+  sed 's/amd64/x86_64/' |
+  sed -r 's/i\d86/i386/' |
+  sed 's/arm(.*)?\-/arm\-/'
+)
+
+echo $target

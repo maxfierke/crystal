@@ -136,7 +136,7 @@ __warning_msg() {
 SCRIPT_PATH="$(realpath "$0")"
 SCRIPT_ROOT="$(dirname "$SCRIPT_PATH")"
 CRYSTAL_ROOT="$(dirname "$SCRIPT_ROOT")"
-CRYSTAL_DIR="$CRYSTAL_ROOT/.build"
+CRYSTAL_DIR="$CRYSTAL_ROOT/.build/$CRYSTAL_CONFIG_TARGET"
 
 export CRYSTAL_PATH="${CRYSTAL_PATH:-lib:$CRYSTAL_ROOT/src}"
 if [ -n "${CRYSTAL_PATH##*$CRYSTAL_ROOT/src*}" ]; then
