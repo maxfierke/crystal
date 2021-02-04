@@ -56,6 +56,7 @@ enum Signal : Int32
   USR1   = LibC::SIGUSR1
   USR2   = LibC::SIGUSR2
   WINCH  = LibC::SIGWINCH
+  STKSZ  = LibC::SIGSTKSZ
 
   {% if flag?(:linux) %}
     PWR    = LibC::SIGPWR
@@ -123,6 +124,10 @@ enum Signal : Int32
   end
 
   @@setup_default_handlers = Atomic::Flag.new
+  @@setup_sigfault_handler = Atomic::Flag.new
+  @@sigfault_handler = LibC::SigactionHandlerT.new { |sig, info, data|
+    __crystal_sigfault_handler(sig, info.value.si_addr)
+  }
 
   # :nodoc:
   def self.setup_default_handlers
@@ -131,6 +136,33 @@ enum Signal : Int32
     Crystal::Signal.start_loop
     Signal::PIPE.ignore
     Signal::CHLD.reset
+  end
+
+  # :nodoc:
+  def self.setup_sigfault_handler
+    return unless @@setup_sigfault_handler.test_and_set
+
+    altstack = LibC::StackT.new
+    action = LibC::Sigaction.new
+
+    altstack.ss_sp = LibC.malloc(STKSZ)
+    altstack.ss_size = STKSZ
+    altstack.ss_flags = 0
+    LibC.sigaltstack(pointerof(altstack), Pointer(LibC::StackT).null)
+
+    {% if flag?(:darwin) || flag?(:openbsd) %}
+      # Can't pass a pointer to action.sa_mask in Crystal, but we can just
+      # initialize it ourselves since it's just a value on these platforms
+      # and not a struct
+      action.sa_mask = LibC::SigsetT.new(0)
+    {% else %}
+      LibC.sigemptyset(pointerof(action.sa_mask))
+    {% end %}
+    action.sa_flags = LibC::SA_ONSTACK | LibC::SA_SIGINFO
+    action.sa_sigaction = @@sigfault_handler
+
+    LibC.sigaction(SEGV, pointerof(action), Pointer(LibC::Sigaction).null)
+    LibC.sigaction(BUS, pointerof(action), Pointer(LibC::Sigaction).null)
   end
 end
 

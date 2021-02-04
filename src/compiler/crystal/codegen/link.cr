@@ -101,8 +101,6 @@ module Crystal
 
     private def lib_flags_windows
       String.build do |flags|
-        add_lib_ext_flags(flags)
-
         link_annotations.reverse_each do |ann|
           if ldflags = ann.ldflags
             flags << ' ' << ldflags
@@ -128,8 +126,6 @@ module Crystal
         flags << Process.quote_posix("-L#{path}")
       end
 
-      add_lib_ext_flags(flags)
-
       link_annotations.reverse_each do |ann|
         if ldflags = ann.ldflags
           flags << ldflags
@@ -151,17 +147,6 @@ module Crystal
       end
 
       flags.join(" ")
-    end
-
-    private def add_lib_ext_flags(flags)
-      target = codegen_target.to_s
-      crystal_path.entries.each do |path|
-        path = File.join(path, "ext", target, "libcrystal.a")
-        if File.exists?(path)
-          flags << path
-          return
-        end
-      end
     end
 
     PKG_CONFIG_PATH = Process.find_executable("pkg-config")

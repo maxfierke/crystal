@@ -52,11 +52,7 @@ EXPORTS := \
 SHELL = sh
 LLVM_EXT_DIR = src/llvm/ext
 LLVM_EXT_OBJ = $(LLVM_EXT_DIR)/$(CRYSTAL_CONFIG_TARGET)/llvm_ext.o
-LIB_CRYSTAL_SOURCES = $(shell find src/ext -name '*.c')
-LIB_CRYSTAL_OBJS = $(subst src/ext,src/ext/$(CRYSTAL_CONFIG_TARGET),$(subst .c,.o,$(LIB_CRYSTAL_SOURCES)))
-LIB_CRYSTAL_TARGET = src/ext/$(CRYSTAL_CONFIG_TARGET)/libcrystal.a
-DEPS = $(LLVM_EXT_OBJ) $(LIB_CRYSTAL_TARGET)
-CFLAGS += -fPIC $(if $(debug),-g -O0) --target="$(CRYSTAL_CONFIG_TARGET)"
+DEPS = $(LLVM_EXT_OBJ)
 CXXFLAGS += $(if $(debug),-g -O0) --target="$(CRYSTAL_CONFIG_TARGET)"
 LDFLAGS += $(shell $(LLVM_CONFIG) --ldflags)
 CRYSTAL_VERSION ?= $(shell cat src/VERSION)
@@ -106,11 +102,9 @@ docs: ## Generate standard library documentation
 .PHONY: crystal
 crystal: $(O)/crystal ## Build the compiler
 
-.PHONY: deps llvm_ext libcrystal
+.PHONY: deps llvm_ext
 deps: $(DEPS) ## Build dependencies
-
 llvm_ext: $(LLVM_EXT_OBJ)
-libcrystal: $(LIB_CRYSTAL_TARGET)
 
 $(O)/all_spec: $(DEPS) $(SOURCES) $(SPEC_SOURCES)
 	@mkdir -p $(O)
@@ -128,22 +122,13 @@ $(O)/crystal: $(DEPS) $(SOURCES)
 	@mkdir -p $(O)
 	$(EXPORTS) ./bin/crystal build $(FLAGS) -o $@ src/compiler/crystal.cr -D without_openssl -D without_zlib
 
-src/ext/$(CRYSTAL_CONFIG_TARGET)/%.o: src/ext/%.c
-	@mkdir -p $$(dirname $@)
-	$(CC) -c $(CFLAGS) -o $@ $<
-
 $(LLVM_EXT_OBJ): $(LLVM_EXT_DIR)/llvm_ext.cc
 	@mkdir -p $$(dirname $@)
 	$(CXX) -c $(CXXFLAGS) -o $@ $< $(shell $(LLVM_CONFIG) --cxxflags)
 
-$(LIB_CRYSTAL_TARGET): $(LIB_CRYSTAL_OBJS)
-	@mkdir -p $$(dirname $@)
-	$(AR) -rcs $@ $^
-
 .PHONY: clean
 clean: clean_crystal ## Clean up built directories and files
 	rm -rf $(LLVM_EXT_OBJ)
-	rm -rf $(LIB_CRYSTAL_OBJS) $(LIB_CRYSTAL_TARGET)
 
 .PHONY: clean_crystal
 clean_crystal: ## Clean up crystal built files
