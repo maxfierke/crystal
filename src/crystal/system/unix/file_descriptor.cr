@@ -1,69 +1,31 @@
 require "c/fcntl"
-
-{% if flag?(:wasi) %}
-  require "io/buffered"
-{% else %}
-  require "io/evented"
-{% end %}
+require "io/evented"
 
 # :nodoc:
 module Crystal::System::FileDescriptor
-  {% if flag?(:wasi) %}
-    include IO::Buffered
-  {% else %}
-    include IO::Evented
-  {% end %}
+  include IO::Evented
 
   @volatile_fd : Atomic(Int32)
 
-  {% if flag?(:wasi) %}
-    private def unbuffered_read(slice : Bytes)
-      bytes_read = LibC.read(fd, slice, slice.size)
-      if bytes_read == -1
-        if Errno.value == Errno::EBADF
+  private def unbuffered_read(slice : Bytes)
+    evented_read(slice, "Error reading file") do
+      LibC.read(fd, slice, slice.size).tap do |return_code|
+        if return_code == -1 && Errno.value == Errno::EBADF
           raise IO::Error.new "File not open for reading"
-        else
-          raise IO::Error.from_errno("Error reading file")
         end
       end
-      bytes_read
     end
+  end
 
-    private def unbuffered_write(slice : Bytes)
-      until slice.empty?
-        bytes_written = LibC.write(fd, slice, slice.size)
-        if bytes_written == -1
-          if Errno.value == Errno::EBADF
-            raise IO::Error.new "File not open for writing"
-          else
-            raise IO::Error.from_errno("Error writing file")
-          end
-        end
-
-        slice += bytes_written
-      end
-    end
-  {% else %}
-    private def unbuffered_read(slice : Bytes)
-      evented_read(slice, "Error reading file") do
-        LibC.read(fd, slice, slice.size).tap do |return_code|
-          if return_code == -1 && Errno.value == Errno::EBADF
-            raise IO::Error.new "File not open for reading"
-          end
+  private def unbuffered_write(slice : Bytes)
+    evented_write(slice, "Error writing file") do |slice|
+      LibC.write(fd, slice, slice.size).tap do |return_code|
+        if return_code == -1 && Errno.value == Errno::EBADF
+          raise IO::Error.new "File not open for writing"
         end
       end
     end
-
-    private def unbuffered_write(slice : Bytes)
-      evented_write(slice, "Error writing file") do |slice|
-        LibC.write(fd, slice, slice.size).tap do |return_code|
-          if return_code == -1 && Errno.value == Errno::EBADF
-            raise IO::Error.new "File not open for writing"
-          end
-        end
-      end
-    end
-  {% end %}
+  end
 
   private def system_blocking?
     flags = fcntl(LibC::F_GETFL)
@@ -148,18 +110,14 @@ module Crystal::System::FileDescriptor
     # Mark the handle open, since we had to have dup'd a live handle.
     @closed = false
 
-    {% unless flag?(:wasi) %}
-      evented_reopen
-    {% end %}
+    evented_reopen
   end
 
   private def system_close
-    {% unless flag?(:wasi) %}
-      # Perform libevent cleanup before LibC.close.
-      # Using a file descriptor after it has been closed is never defined and can
-      # always lead to undefined results. This is not specific to libevent.
-      evented_close
-    {% end %}
+    # Perform libevent cleanup before LibC.close.
+    # Using a file descriptor after it has been closed is never defined and can
+    # always lead to undefined results. This is not specific to libevent.
+    evented_close
 
     file_descriptor_close
   end
@@ -180,18 +138,22 @@ module Crystal::System::FileDescriptor
   end
 
   def self.pipe(read_blocking, write_blocking)
-    pipe_fds = uninitialized StaticArray(LibC::Int, 2)
-    if LibC.pipe(pipe_fds) != 0
-      raise IO::Error.from_errno("Could not create pipe")
-    end
+    {% if flag?(:wasi) %}
+      raise IO::Error.new("wasi: pipes not supported")
+    {% else %}
+      pipe_fds = uninitialized StaticArray(LibC::Int, 2)
+      if LibC.pipe(pipe_fds) != 0
+        raise IO::Error.from_errno("Could not create pipe")
+      end
 
-    r = IO::FileDescriptor.new(pipe_fds[0], read_blocking)
-    w = IO::FileDescriptor.new(pipe_fds[1], write_blocking)
-    r.close_on_exec = true
-    w.close_on_exec = true
-    w.sync = true
+      r = IO::FileDescriptor.new(pipe_fds[0], read_blocking)
+      w = IO::FileDescriptor.new(pipe_fds[1], write_blocking)
+      r.close_on_exec = true
+      w.close_on_exec = true
+      w.sync = true
 
-    {r, w}
+      {r, w}
+    {% end %}
   end
 
   def self.pread(fd, buffer, offset)
@@ -212,7 +174,9 @@ module Crystal::System::FileDescriptor
     # For non-tty we set flush_on_newline to true for reasons described in STDOUT and STDERR docs.
     path = uninitialized UInt8[256]
 
-    {% unless flag?(:wasi) %}
+    {% if flag?(:wasi) %}
+      return IO::FileDescriptor.new(fd).tap(&.flush_on_newline=(true))
+    {% else %}
       ret = LibC.ttyname_r(fd, path, 256)
       return IO::FileDescriptor.new(fd).tap(&.flush_on_newline=(true)) unless ret == 0
     {% end %}

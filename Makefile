@@ -131,6 +131,7 @@ $(LIB_CRYSTAL_TARGET): $(LIB_CRYSTAL_OBJS)
 clean: clean_crystal ## Clean up built directories and files
 	rm -rf $(LLVM_EXT_OBJ)
 	rm -rf $(LIB_CRYSTAL_OBJS) $(LIB_CRYSTAL_TARGET)
+	rm -rf *.o *.wasm *.wat
 
 .PHONY: clean_crystal
 clean_crystal: ## Clean up crystal built files

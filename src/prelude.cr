@@ -34,9 +34,7 @@ require "box"
 require "char"
 require "char/reader"
 require "class"
-{% unless flag?(:wasi) %}
-  require "concurrent"
-{% end %}
+require "concurrent"
 require "crystal/compiler_rt"
 require "crystal/main"
 require "deque"
@@ -55,7 +53,7 @@ require "intrinsics"
 require "io"
 require "kernel"
 require "math/math"
-{% unless flag?(:win32) || flag?(:wasi) %}
+{% unless flag?(:win32) %}
   require "mutex"
 {% end %}
 require "named_tuple"
@@ -75,7 +73,7 @@ require "range"
 require "reference"
 require "regex"
 require "set"
-{% unless flag?(:win32) || flag?(:wasi) %}
+{% unless flag?(:win32) %}
   require "signal"
 {% end %}
 require "slice"
@@ -83,9 +81,7 @@ require "static_array"
 require "struct"
 require "symbol"
 require "system"
-{% unless flag?(:wasi) %}
-  require "crystal/system/thread"
-{% end %}
+require "crystal/system/thread"
 require "time"
 require "tuple"
 require "unicode"

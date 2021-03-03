@@ -14,7 +14,10 @@ module Crystal::System::Fiber
       LibC.madvise(pointer, stack_size, LibC::MADV_NOHUGEPAGE)
     {% end %}
 
-    LibC.mprotect(pointer, 4096, LibC::PROT_NONE)
+    {% unless flag?(:wasi) %}
+      LibC.mprotect(pointer, 4096, LibC::PROT_NONE)
+    {% end %}
+
     pointer
   end
 

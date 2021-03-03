@@ -4,6 +4,10 @@ struct Exception::CallStack
   def self.skip(*args)
     # do nothing
   end
+
+  def self.print_backtrace
+    # do nothing
+  end
 end
 
 class Process
@@ -16,43 +20,4 @@ class Process
   def self.pid
     1
   end
-end
-
-class Fiber
-  def self.yield
-  end
-end
-
-class Mutex
-  enum Protection
-    Checked
-    Reentrant
-    Unchecked
-  end
-
-  def initialize(@protection : Protection = :checked)
-  end
-
-  def lock
-  end
-
-  def unlock
-  end
-
-  def synchronize
-    lock
-    begin
-      yield
-    ensure
-      unlock
-    end
-  end
-end
-
-def sleep(seconds : Number)
-  sleep(seconds.seconds)
-end
-
-def sleep(time : Time::Span)
-  LibC.sleep(time.total_seconds.to_i)
 end

@@ -524,7 +524,10 @@ end
   end
 
   Signal.setup_default_handlers
-  LibExt.setup_sigfault_handler
+
+  {% unless flag?(:wasi) %}
+    LibExt.setup_sigfault_handler
+  {% end %}
 {% end %}
 
 {% if flag?(:preview_mt) %}

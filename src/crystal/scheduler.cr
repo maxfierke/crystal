@@ -2,7 +2,15 @@ require "crystal/system/event_loop"
 require "crystal/system/print_error"
 require "./fiber_channel"
 require "fiber"
+require "fiber/context"
+require "fiber/context/wasm32"
 require "crystal/system/thread"
+
+{% if flag?(:wasi) %}
+lib Asyncify
+  fun stop_rewind()
+end
+{% end %}
 
 # :nodoc:
 #
@@ -120,8 +128,8 @@ class Crystal::Scheduler
 
   private def fatal_resume_error(fiber, message)
     Crystal::System.print_error "\nFATAL: #{message}: #{fiber}\n"
-    {% unless flag?(:win32) %}
-      # FIXME: Enable when caller is supported on win32
+    {% unless flag?(:win32) || flag?(:wasi) %}
+      # FIXME: Enable when caller is supported on win32 and/or wasi
       caller.each { |line| Crystal::System.print_error "  from #{line}\n" }
     {% end %}
 
@@ -141,6 +149,10 @@ class Crystal::Scheduler
   {% end %}
 
   protected def reschedule : Nil
+    {% if flag?(:wasi) %}
+      Asyncify.stop_rewind
+    {% end %}
+
     loop do
       if runnable = @lock.sync { @runnables.shift? }
         unless runnable == Fiber.current

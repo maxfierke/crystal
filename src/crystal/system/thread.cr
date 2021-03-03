@@ -31,6 +31,8 @@ require "./thread_linked_list"
 {% if flag?(:unix) %}
   require "./unix/pthread"
   require "./unix/pthread_condition_variable"
+{% elsif flag?(:wasi) %}
+  require "./wasi/thread"
 {% elsif flag?(:win32) %}
   require "./win32/thread"
 {% else %}

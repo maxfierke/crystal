@@ -19,8 +19,10 @@ end
 
 {% if flag?(:unix) %}
   require "./unix/pthread_mutex"
+{% elsif flag?(:wasi) %}
+  require "./wasi/thread_mutex"
 {% elsif flag?(:win32) %}
   require "./win32/thread_mutex"
-{% else %}
+{% else%}
   {% raise "thread not supported" %}
 {% end %}

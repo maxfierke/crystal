@@ -34,6 +34,8 @@ set +x
 SPEC_SUITE=${1:-std}
 RUNNER=${RUNNER:-wavm run --abi=wasi --enable all-proposed}
 WASI_SDK_PATH=${WASI_SDK_PATH:-"$HOME/toolchains/wasi-sdk-11.0"}
+WASM_DIS=${WASM_DIS:-"$HOME/toolchains/bin/wasm-dis"}
+WASM_OPT=${WASM_OPT:-"$HOME/toolchains/bin/wasm-opt -O --asyncify"}
 
 INITIAL_MEMORY=${INITIAL_MEMORY:-16777216}
 MAX_MEMORY=${MAX_MEMORY:-2147483648}
@@ -42,7 +44,9 @@ STACK_SIZE=${STACK_SIZE:-5242880}
 export CC="$WASI_SDK_PATH/bin/clang --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
 export LIBRARY_PATH="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi"
 export CRYSTAL_LIBRARY_PATH="$HOME/toolchains/crystal-wasm-libs/targets/wasm32-wasi"
-export WASM_LDFLAGS="-Wl,--allow-undefined \
+# -Wl,--export-all \
+export WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-signal \
+-Wl,--allow-undefined \
 -Wl,--initial-memory=${INITIAL_MEMORY} \
 -Wl,--max-memory=${MAX_MEMORY}         \
 -Wl,-z -Wl,stack-size=${STACK_SIZE}    \
@@ -75,7 +79,20 @@ for spec in $(find "spec/$SPEC_SUITE" -type f -iname "*_spec.cr" | sort); do
     continue
   fi
 
-  binary_path="./$(echo "$linker_command" | grep -oP '(?<=-o\s)(.*)(?=\.wasm)').wasm"
+  program_name=$(echo "$linker_command" | grep -oP '(?<=-o\s)(.*)(?=\.wasm)')
+  preopt_wasm_path="./$program_name.wasm"
+  preopt_wat_path="./$program_name.wat"
+
+  if ! $WASM_DIS "$preopt_wasm_path" > "$preopt_wat_path"; then
+    echo "# $require (failed to run wasm-dis)"
+    continue
+  fi
+
+  binary_path=$preopt_wasm_path
+  if ! $WASM_OPT -o "$binary_path" "$preopt_wat_path"; then
+    echo "# $require (failed to run wasm-opt)"
+    continue
+  fi
 
   $RUNNER "$binary_path" > /dev/null; exit=$?
 

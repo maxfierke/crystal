@@ -1,3 +1,4 @@
+{% skip_file if flag?(:wasi) %}
 # :nodoc:
 #
 # This struct wraps around a IO pipe to send and receive fibers between

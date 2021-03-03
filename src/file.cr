@@ -1,4 +1,5 @@
 require "io"
+require "io/buffered"
 require "io/encoding"
 require "io/error"
 require "io/file_descriptor"

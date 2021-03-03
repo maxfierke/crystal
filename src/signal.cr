@@ -3,6 +3,7 @@ require "c/stdio"
 require "c/sys/wait"
 require "c/unistd"
 require "crystal/system/print_error"
+require "io/memory"
 
 # Safely handle inter-process signals on POSIX systems.
 #
@@ -102,7 +103,7 @@ enum Signal : Int32
     Crystal::Signal.ignore(self)
   end
 
-  {% if flag?(:darwin) || flag?(:openbsd) %}
+  {% if flag?(:darwin) || flag?(:openbsd) || flag?(:wasi) %}
     @@sigset = LibC::SigsetT.new(0)
   {% else %}
     @@sigset = LibC::SigsetT.new
@@ -110,17 +111,25 @@ enum Signal : Int32
 
   # :nodoc:
   def set_add : Nil
-    LibC.sigaddset(pointerof(@@sigset), self)
+    {% unless flag?(:wasi) %}
+      LibC.sigaddset(pointerof(@@sigset), self)
+    {% end %}
   end
 
   # :nodoc:
   def set_del : Nil
-    LibC.sigdelset(pointerof(@@sigset), self)
+    {% unless flag?(:wasi) %}
+      LibC.sigdelset(pointerof(@@sigset), self)
+    {% end %}
   end
 
   # :nodoc:
   def set? : Bool
-    LibC.sigismember(pointerof(@@sigset), self) == 1
+    {% if flag?(:wasi) %}
+      false
+    {% else %}
+      LibC.sigismember(pointerof(@@sigset), self) == 1
+    {% end %}
   end
 
   @@setup_default_handlers = Atomic::Flag.new
@@ -128,7 +137,9 @@ enum Signal : Int32
   # :nodoc:
   def self.setup_default_handlers
     return unless @@setup_default_handlers.test_and_set
-    LibC.sigemptyset(pointerof(@@sigset))
+    {% unless flag?(:wasi) %}
+      LibC.sigemptyset(pointerof(@@sigset))
+    {% end %}
     Crystal::Signal.start_loop
     Signal::PIPE.ignore
     Signal::CHLD.reset
@@ -145,7 +156,10 @@ module Crystal::Signal
 
   alias Handler = ::Signal ->
 
-  @@pipe = IO.pipe(read_blocking: false, write_blocking: true)
+  {% unless flag?(:wasi) %}
+    @@pipe = IO.pipe(read_blocking: false, write_blocking: true)
+  {% end %}
+
   @@handlers = {} of ::Signal => Handler
   @@child_handler : Handler?
   @@mutex = Mutex.new(:unchecked)
@@ -154,9 +168,11 @@ module Crystal::Signal
     @@mutex.synchronize do
       unless @@handlers[signal]?
         signal.set_add
-        LibC.signal(signal.value, ->(value : Int32) {
-          writer.write_bytes(value) unless writer.closed?
-        })
+        {% unless flag?(:wasi) %}
+          LibC.signal(signal.value, ->(value : Int32) {
+            writer.write_bytes(value) unless writer.closed?
+          })
+        {% end %}
       end
       @@handlers[signal] = handler
     end
@@ -171,7 +187,13 @@ module Crystal::Signal
   end
 
   def self.ignore(signal) : Nil
-    set(signal, LibC::SIG_IGN)
+    {% if flag?(:wasi) %}
+      set(signal, ->(signal : Int32) {
+        # Do Nothing
+      })
+    {% else %}
+      set(signal, LibC::SIG_IGN)
+    {% end %}
   end
 
   private def self.set(signal, handler)
@@ -180,7 +202,9 @@ module Crystal::Signal
       @@child_handler = nil
       # But keep a default SIGCHLD, Process#wait requires it
       trap(signal, ->(signal : ::Signal) {
-        Crystal::SignalChildHandler.call
+        {% unless flag?(:wasi) %}
+          Crystal::SignalChildHandler.call
+        {% end %}
         @@child_handler.try(&.call(signal))
       })
     else
@@ -193,15 +217,17 @@ module Crystal::Signal
   end
 
   def self.start_loop
-    spawn(name: "Signal Loop") do
-      loop do
-        value = reader.read_bytes(Int32)
-      rescue IO::Error
-        next
-      else
-        process(::Signal.new(value))
+    {% unless flag?(:wasi) %}
+      spawn(name: "Signal Loop") do
+        loop do
+          value = reader.read_bytes(Int32)
+        rescue IO::Error
+          next
+        else
+          process(::Signal.new(value))
+        end
       end
-    end
+    {% end %}
   end
 
   private def self.process(signal) : Nil
@@ -221,9 +247,13 @@ module Crystal::Signal
   # Replaces the signal pipe so the child process won't share the file
   # descriptors of the parent process and send it received signals.
   def self.after_fork
-    @@pipe.each(&.file_descriptor_close)
-  ensure
-    @@pipe = IO.pipe(read_blocking: false, write_blocking: true)
+    {% unless flag?(:wasi) %}
+      begin
+        @@pipe.each(&.file_descriptor_close)
+      ensure
+        @@pipe = IO.pipe(read_blocking: false, write_blocking: true)
+      end
+    {% end %}
   end
 
   # Resets signal handlers to `SIG_DFL`. This avoids the child to receive
@@ -243,7 +273,7 @@ module Crystal::Signal
       LibC.signal(signal, LibC::SIG_DFL) if signal.set?
     end
   ensure
-    {% unless flag?(:preview_mt) %}
+    {% unless flag?(:preview_mt) || flag?(:wasi) %}
       @@pipe.each(&.file_descriptor_close)
     {% end %}
   end
